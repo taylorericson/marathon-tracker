@@ -4,7 +4,7 @@ from extensions import db
 from models import Run
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r'/*': {'origins': '*'}}, supports_credentials=True)
 
 # Configure PostgreSQL
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Pumpernickel7!!@localhost:5433/marathon_tracker'
@@ -15,6 +15,21 @@ db.init_app(app)
 @app.route('/')
 def home():
     return jsonify({"message": "Welcome to the Marathon Tracker API!"})
+
+@app.route('/runs/<int:run_id>', methods=['DELETE'])
+def delete_run(run_id):
+    try:
+        run = Run.query.get(run_id)
+        if not run:
+            return jsonify({"error": "Run not found"}), 404
+        
+        db.session.delete(run)
+        db.session.commit()
+        return jsonify({"message": "Run deleted successfully!"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/runs', methods=['POST'])
 def add_run():
